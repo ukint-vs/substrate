@@ -88,6 +88,7 @@ const TX_SOURCE: TransactionSource = TransactionSource::External;
 impl<P, Client> AuthorApi<TxHash<P>, BlockHash<P>> for Author<P, Client>
 	where
 		P: TransactionPool + Sync + Send + 'static,
+		BlockHash<P>: Unpin,
 		Client: HeaderBackend<P::Block> + ProvideRuntimeApi<P::Block> + Send + Sync + 'static,
 		Client::Api: SessionKeys<P::Block>,
 {
