@@ -130,7 +130,7 @@ macro_rules! decl_event {
 			$crate::scale_info::TypeInfo,
 			$crate::RuntimeDebug,
 		)]
-		#[scale_info(capture_docs = "always")]
+		#[scale_info(docs(capture = "always"))]
 		/// Events for this module.
 		///
 		$(#[$attr])*
@@ -268,7 +268,7 @@ macro_rules! __decl_generic_event {
 			$crate::scale_info::TypeInfo,
 			$crate::RuntimeDebug,
 		)]
-		#[scale_info(capture_docs = "always")]
+		#[scale_info(docs(capture = "always"))]
 		/// Events for this module.
 		///
 		$(#[$attr])*
