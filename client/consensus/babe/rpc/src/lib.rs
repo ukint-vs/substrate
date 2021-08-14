@@ -81,70 +81,73 @@ where
 		let mut module = RpcModule::new(self);
 		// Returns data about which slots (primary or secondary) can be claimed in the current epoch
 		// with the keys in the keystore.
-		module.register_async_method("babe_epochAuthorship", |_params, babe| {
-			async move {
-				babe.deny_unsafe.check_if_safe()?;
-				let header = babe.select_chain.best_chain().map_err(Error::Consensus).await?;
-				let epoch_start = babe
-					.client
-					.runtime_api()
-					.current_epoch_start(&BlockId::Hash(header.hash()))
-					.map_err(|err| Error::StringError(format!("{:?}", err)))?;
+		module.register_async_method::<_, _, CallError>(
+			"babe_epochAuthorship",
+			|_params, babe| {
+				async move {
+					babe.deny_unsafe.check_if_safe()?;
+					let header = babe.select_chain.best_chain().map_err(Error::Consensus).await?;
+					let epoch_start = babe
+						.client
+						.runtime_api()
+						.current_epoch_start(&BlockId::Hash(header.hash()))
+						.map_err(|err| Error::StringError(format!("{:?}", err)))?;
 
-				let epoch = epoch_data(
-					&babe.shared_epoch_changes,
-					&babe.client,
-					&babe.babe_config,
-					*epoch_start,
-					&babe.select_chain,
-				)
-				.await?;
-				let (epoch_start, epoch_end) = (epoch.start_slot(), epoch.end_slot());
-				let mut claims: HashMap<AuthorityId, EpochAuthorship> = HashMap::new();
+					let epoch = epoch_data(
+						&babe.shared_epoch_changes,
+						&babe.client,
+						&babe.babe_config,
+						*epoch_start,
+						&babe.select_chain,
+					)
+					.await?;
+					let (epoch_start, epoch_end) = (epoch.start_slot(), epoch.end_slot());
+					let mut claims: HashMap<AuthorityId, EpochAuthorship> = HashMap::new();
 
-				let keys = {
-					epoch
-						.authorities
-						.iter()
-						.enumerate()
-						.filter_map(|(i, a)| {
-							if SyncCryptoStore::has_keys(
-								&*babe.keystore,
-								&[(a.0.to_raw_vec(), AuthorityId::ID)],
-							) {
-								Some((a.0.clone(), i))
-							} else {
-								None
-							}
-						})
-						.collect::<Vec<_>>()
-				};
+					let keys = {
+						epoch
+							.authorities
+							.iter()
+							.enumerate()
+							.filter_map(|(i, a)| {
+								if SyncCryptoStore::has_keys(
+									&*babe.keystore,
+									&[(a.0.to_raw_vec(), AuthorityId::ID)],
+								) {
+									Some((a.0.clone(), i))
+								} else {
+									None
+								}
+							})
+							.collect::<Vec<_>>()
+					};
 
-				for slot in *epoch_start..*epoch_end {
-					if let Some((claim, key)) = authorship::claim_slot_using_keys(
-						slot.into(),
-						&epoch,
-						&babe.keystore,
-						&keys,
-					) {
-						match claim {
-							PreDigest::Primary { .. } => {
-								claims.entry(key).or_default().primary.push(slot);
-							},
-							PreDigest::SecondaryPlain { .. } => {
-								claims.entry(key).or_default().secondary.push(slot);
-							},
-							PreDigest::SecondaryVRF { .. } => {
-								claims.entry(key).or_default().secondary_vrf.push(slot.into());
-							},
-						};
+					for slot in *epoch_start..*epoch_end {
+						if let Some((claim, key)) = authorship::claim_slot_using_keys(
+							slot.into(),
+							&epoch,
+							&babe.keystore,
+							&keys,
+						) {
+							match claim {
+								PreDigest::Primary { .. } => {
+									claims.entry(key).or_default().primary.push(slot);
+								},
+								PreDigest::SecondaryPlain { .. } => {
+									claims.entry(key).or_default().secondary.push(slot);
+								},
+								PreDigest::SecondaryVRF { .. } => {
+									claims.entry(key).or_default().secondary_vrf.push(slot.into());
+								},
+							};
+						}
 					}
-				}
 
-				Ok(claims)
-			}
-			.boxed()
-		})?;
+					Ok(claims)
+				}
+				.boxed()
+			},
+		)?;
 
 		Ok(module)
 	}

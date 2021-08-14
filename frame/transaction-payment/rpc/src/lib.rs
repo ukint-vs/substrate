@@ -59,7 +59,7 @@ where
 	pub fn into_rpc_module(self) -> Result<RpcModule<Self>, JsonRpseeError> {
 		let mut module = RpcModule::new(self);
 
-		module.register_method::<RuntimeDispatchInfo<Balance>, _>(
+		module.register_method::<RuntimeDispatchInfo<Balance>, _, _>(
 			"payment_queryInfo",
 			|params, trx_payment| {
 				let (encoded_xt, at): (Bytes, Option<<Block as BlockT>::Hash>) = params.parse()?;
@@ -76,38 +76,41 @@ where
 			},
 		)?;
 
-		module.register_method("payment_queryFeeDetails", |params, trx_payment| {
-			let (encoded_xt, at): (Bytes, Option<<Block as BlockT>::Hash>) = params.parse()?;
+		module.register_method::<_, _, CallError>(
+			"payment_queryFeeDetails",
+			|params, trx_payment| {
+				let (encoded_xt, at): (Bytes, Option<<Block as BlockT>::Hash>) = params.parse()?;
 
-			let api = trx_payment.client.runtime_api();
-			let at = BlockId::hash(at.unwrap_or_else(|| trx_payment.client.info().best_hash));
+				let api = trx_payment.client.runtime_api();
+				let at = BlockId::hash(at.unwrap_or_else(|| trx_payment.client.info().best_hash));
 
-			let encoded_len = encoded_xt.len() as u32;
+				let encoded_len = encoded_xt.len() as u32;
 
-			let uxt: Block::Extrinsic = Decode::decode(&mut &*encoded_xt)
-				.map_err(|codec_err| CallError::Failed(Box::new(codec_err)))?;
-			let fee_details = api
-				.query_fee_details(&at, uxt, encoded_len)
-				.map_err(|api_err| CallError::Failed(Box::new(api_err)))?;
+				let uxt: Block::Extrinsic = Decode::decode(&mut &*encoded_xt)
+					.map_err(|codec_err| CallError::Failed(Box::new(codec_err)))?;
+				let fee_details = api
+					.query_fee_details(&at, uxt, encoded_len)
+					.map_err(|api_err| CallError::Failed(Box::new(api_err)))?;
 
-			let try_into_rpc_balance =
-				|value: Balance| value.try_into().map_err(|_try_err| CallError::InvalidParams);
+				let try_into_rpc_balance =
+					|value: Balance| value.try_into().map_err(|_try_err| CallError::InvalidParams);
 
-			Ok(FeeDetails {
-				inclusion_fee: if let Some(inclusion_fee) = fee_details.inclusion_fee {
-					Some(InclusionFee {
-						base_fee: try_into_rpc_balance(inclusion_fee.base_fee)?,
-						len_fee: try_into_rpc_balance(inclusion_fee.len_fee)?,
-						adjusted_weight_fee: try_into_rpc_balance(
-							inclusion_fee.adjusted_weight_fee,
-						)?,
-					})
-				} else {
-					None
-				},
-				tip: Default::default(),
-			})
-		})?;
+				Ok(FeeDetails {
+					inclusion_fee: if let Some(inclusion_fee) = fee_details.inclusion_fee {
+						Some(InclusionFee {
+							base_fee: try_into_rpc_balance(inclusion_fee.base_fee)?,
+							len_fee: try_into_rpc_balance(inclusion_fee.len_fee)?,
+							adjusted_weight_fee: try_into_rpc_balance(
+								inclusion_fee.adjusted_weight_fee,
+							)?,
+						})
+					} else {
+						None
+					},
+					tip: Default::default(),
+				})
+			},
+		)?;
 
 		Ok(module)
 	}

@@ -42,6 +42,7 @@ mod inner {
 	use futures_channel::oneshot;
 	use jsonrpsee::{
 		http_server::{HttpServerBuilder, HttpStopHandle},
+		types::Error,
 		ws_server::{WsServerBuilder, WsStopHandle},
 		RpcModule,
 	};
@@ -99,7 +100,7 @@ mod inner {
 
 				// TODO: (dp) not sure this is correct; shouldn't the `rpc_methods` also be listed?
 				methods_api
-					.register_method("rpc_methods", move |_, _| {
+					.register_method::<_, _, Error>("rpc_methods", move |_, _| {
 						Ok(serde_json::json!({
 							"version": 1,
 							"methods": available_methods,
@@ -168,7 +169,7 @@ mod inner {
 
 				// TODO: (dp) not sure this is correct; shouldn't the `rpc_methods` also be listed?
 				methods_api
-					.register_method("rpc_methods", move |_, _| {
+					.register_method::<_, _, Error>("rpc_methods", move |_, _| {
 						Ok(serde_json::json!({
 							"version": 1,
 							"methods": available_methods,

@@ -94,7 +94,7 @@ where
 		//
 		// Returns the (full) leaf itself and a proof for this leaf (compact encoding, i.e. hash of
 		// the leaf). Both parameters are SCALE-encoded.
-		module.register_method("mmr_generateProof", |params, mmr| {
+		module.register_method::<_, _, JsonRpseeError>("mmr_generateProof", |params, mmr| {
 			let (leaf_index, at): (u64, Option<<Block as BlockT>::Hash>) = params.parse()?;
 			let api = mmr.client.runtime_api();
 			let block_hash = at.unwrap_or_else(|| mmr.client.info().best_hash);

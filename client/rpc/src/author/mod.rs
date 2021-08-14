@@ -28,10 +28,14 @@ use crate::SubscriptionTaskExecutor;
 use codec::{Decode, Encode};
 use futures::{FutureExt, StreamExt};
 use jsonrpsee::{
-	types::error::{CallError as RpseeCallError, Error as JsonRpseeError},
-	RpcModule,
+	types::{
+		async_trait,
+		error::{CallError as RpseeCallError, Error as JsonRpseeError},
+		JsonRpcResult,
+	},
+	RpcModule, SubscriptionSink,
 };
-use sc_rpc_api::DenyUnsafe;
+use sc_rpc_api::{author::AuthorApiServer, DenyUnsafe};
 use sc_transaction_pool_api::{
 	error::IntoPoolError, InPoolTransaction, TransactionFor, TransactionPool, TransactionSource,
 	TxHash,
@@ -84,7 +88,7 @@ where
 	pub fn into_rpc_module(self) -> std::result::Result<RpcModule<Self>, JsonRpseeError> {
 		let mut module = RpcModule::new(self);
 
-		module.register_method("author_insertKey", |params, author| {
+		module.register_method::<_, _, RpseeCallError>("author_insertKey", |params, author| {
 			author.deny_unsafe.check_if_safe()?;
 			let (key_type, suri, public): (String, String, Bytes) = params.parse()?;
 			let key_type = key_type.as_str().try_into().map_err(|_| Error::BadKeyType)?;
@@ -93,37 +97,43 @@ where
 			Ok(())
 		})?;
 
-		module.register_method::<Bytes, _>("author_rotateKeys", |_params, author| {
-			author.deny_unsafe.check_if_safe()?;
+		module.register_method::<Bytes, _, RpseeCallError>(
+			"author_rotateKeys",
+			|_params, author| {
+				author.deny_unsafe.check_if_safe()?;
 
-			let best_block_hash = author.client.info().best_hash;
-			author
-				.client
-				.runtime_api()
-				.generate_session_keys(&generic::BlockId::Hash(best_block_hash), None)
-				.map(Into::into)
-				.map_err(|api_err| Error::Client(Box::new(api_err)).into())
-		})?;
+				let best_block_hash = author.client.info().best_hash;
+				author
+					.client
+					.runtime_api()
+					.generate_session_keys(&generic::BlockId::Hash(best_block_hash), None)
+					.map(Into::into)
+					.map_err(|api_err| Error::Client(Box::new(api_err)).into())
+			},
+		)?;
 
-		module.register_method("author_hasSessionKeys", |params, author| {
-			author.deny_unsafe.check_if_safe()?;
+		module.register_method::<_, _, RpseeCallError>(
+			"author_hasSessionKeys",
+			|params, author| {
+				author.deny_unsafe.check_if_safe()?;
 
-			let session_keys: Bytes = params.one()?;
-			let best_block_hash = author.client.info().best_hash;
-			let keys = author
-				.client
-				.runtime_api()
-				.decode_session_keys(
-					&generic::BlockId::Hash(best_block_hash),
-					session_keys.to_vec(),
-				)
-				.map_err(|e| RpseeCallError::Failed(Box::new(e)))?
-				.ok_or_else(|| Error::InvalidSessionKeys)?;
+				let session_keys: Bytes = params.one()?;
+				let best_block_hash = author.client.info().best_hash;
+				let keys = author
+					.client
+					.runtime_api()
+					.decode_session_keys(
+						&generic::BlockId::Hash(best_block_hash),
+						session_keys.to_vec(),
+					)
+					.map_err(|e| RpseeCallError::Failed(Box::new(e)))?
+					.ok_or_else(|| Error::InvalidSessionKeys)?;
 
-			Ok(SyncCryptoStore::has_keys(&*author.keystore, &keys))
-		})?;
+				Ok(SyncCryptoStore::has_keys(&*author.keystore, &keys))
+			},
+		)?;
 
-		module.register_method("author_hasKey", |params, author| {
+		module.register_method::<_, _, RpseeCallError>("author_hasKey", |params, author| {
 			author.deny_unsafe.check_if_safe()?;
 
 			let (public_key, key_type) = params.parse::<(Vec<u8>, String)>()?;
@@ -131,7 +141,7 @@ where
 			Ok(SyncCryptoStore::has_keys(&*author.keystore, &[(public_key, key_type)]))
 		})?;
 
-		module.register_async_method::<TxHash<P>, _>(
+		module.register_async_method::<TxHash<P>, _, _>(
 			"author_submitExtrinsic",
 			|params, author| {
 				let ext: Bytes = match params.one() {
@@ -158,11 +168,12 @@ where
 			},
 		)?;
 
-		module.register_method::<Vec<Bytes>, _>("author_pendingExtrinsics", |_, author| {
-			Ok(author.pool.ready().map(|tx| tx.data().encode().into()).collect())
-		})?;
+		module.register_method::<Vec<Bytes>, _, RpseeCallError>(
+			"author_pendingExtrinsics",
+			|_, author| Ok(author.pool.ready().map(|tx| tx.data().encode().into()).collect()),
+		)?;
 
-		module.register_method::<Vec<TxHash<P>>, _>(
+		module.register_method::<Vec<TxHash<P>>, _, RpseeCallError>(
 			"author_removeExtrinsic",
 			|params, author| {
 				author.deny_unsafe.check_if_safe()?;
@@ -228,6 +239,58 @@ where
 		)?;
 
 		Ok(module)
+	}
+}
+
+#[async_trait]
+impl<P, Client> AuthorApiServer for Author<P, Client>
+where
+	P: TransactionPool + Sync + Send + 'static,
+	Client: HeaderBackend<P::Block> + ProvideRuntimeApi<P::Block> + Send + Sync + 'static,
+	Client::Api: SessionKeys<P::Block>,
+{
+	async fn submit_extrinsic(&self, _extrinsic: Bytes) -> JsonRpcResult<Hash> {
+		todo!();
+	}
+
+	fn insert_key(&self, key_type: String, suri: String, public: Bytes) -> JsonRpcResult<()> {
+		self.deny_unsafe.check_if_safe().map_err(RpseeCallError::from)?;
+		let key_type = key_type
+			.as_str()
+			.try_into()
+			.map_err(|_| Error::BadKeyType)
+			.map_err(RpseeCallError::from)?;
+		SyncCryptoStore::insert_unknown(&*self.keystore, key_type, &suri, &public[..])
+			.map_err(|_| Error::KeyStoreUnavailable)
+			.map_err(RpseeCallError::from)?;
+		Ok(())
+	}
+
+	fn rotate_keys(&self) -> JsonRpcResult<Bytes> {
+		todo!();
+	}
+
+	fn has_session_keys(&self, _session_keys: Bytes) -> JsonRpcResult<bool> {
+		todo!();
+	}
+
+	fn has_key(&self, _public_key: Bytes, _key_type: String) -> JsonRpcResult<bool> {
+		todo!();
+	}
+
+	fn pending_extrinsics(&self) -> JsonRpcResult<Vec<Bytes>> {
+		todo!();
+	}
+
+	fn remove_extrinsic(
+		&self,
+		_bytes_or_hash: Vec<hash::ExtrinsicOrHash<Hash>>,
+	) -> JsonRpcResult<Vec<Hash>> {
+		todo!();
+	}
+
+	fn watch_extrinsic(&self, _sink: SubscriptionSink, _xt: Bytes) {
+		todo!();
 	}
 }
 

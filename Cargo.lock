@@ -2808,10 +2808,11 @@ dependencies = [
 [[package]]
 name = "jsonrpsee"
 version = "0.3.0"
-source = "git+https://github.com/paritytech/jsonrpsee?branch=master#6db2ee15af05fbe2b4ad5417a730820321aea69f"
+source = "git+https://github.com/paritytech/jsonrpsee?branch=na-require-proc-macro-api-to-return-result#33b4fa28730b72647ba150659d3c0ab1937e524a"
 dependencies = [
  "jsonrpsee-http-server",
- "jsonrpsee-types 0.3.0 (git+https://github.com/paritytech/jsonrpsee?branch=master)",
+ "jsonrpsee-proc-macros 0.3.0 (git+https://github.com/paritytech/jsonrpsee?branch=na-require-proc-macro-api-to-return-result)",
+ "jsonrpsee-types 0.3.0 (git+https://github.com/paritytech/jsonrpsee?branch=na-require-proc-macro-api-to-return-result)",
  "jsonrpsee-utils",
  "jsonrpsee-ws-server",
 ]
@@ -2819,13 +2820,13 @@ dependencies = [
 [[package]]
 name = "jsonrpsee-http-server"
 version = "0.3.0"
-source = "git+https://github.com/paritytech/jsonrpsee?branch=master#6db2ee15af05fbe2b4ad5417a730820321aea69f"
+source = "git+https://github.com/paritytech/jsonrpsee?branch=na-require-proc-macro-api-to-return-result#33b4fa28730b72647ba150659d3c0ab1937e524a"
 dependencies = [
  "futures-channel",
  "futures-util",
  "globset",
  "hyper 0.14.11",
- "jsonrpsee-types 0.3.0 (git+https://github.com/paritytech/jsonrpsee?branch=master)",
+ "jsonrpsee-types 0.3.0 (git+https://github.com/paritytech/jsonrpsee?branch=na-require-proc-macro-api-to-return-result)",
  "jsonrpsee-utils",
  "lazy_static",
  "log",
@@ -2851,9 +2852,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "jsonrpsee-proc-macros"
+version = "0.3.0"
+source = "git+https://github.com/paritytech/jsonrpsee?branch=na-require-proc-macro-api-to-return-result#33b4fa28730b72647ba150659d3c0ab1937e524a"
+dependencies = [
+ "Inflector",
+ "bae",
+ "proc-macro-crate 1.0.0",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "jsonrpsee-types"
 version = "0.3.0"
 source = "git+https://github.com/paritytech/jsonrpsee?branch=master#6db2ee15af05fbe2b4ad5417a730820321aea69f"
+dependencies = [
+ "async-trait",
+ "beef",
+ "futures-channel",
+ "futures-util",
+ "hyper 0.14.11",
+ "log",
+ "serde",
+ "serde_json",
+ "soketto 0.6.0",
+ "thiserror",
+]
+
+[[package]]
+name = "jsonrpsee-types"
+version = "0.3.0"
+source = "git+https://github.com/paritytech/jsonrpsee?branch=na-require-proc-macro-api-to-return-result#33b4fa28730b72647ba150659d3c0ab1937e524a"
 dependencies = [
  "async-trait",
  "beef",
@@ -2887,13 +2918,13 @@ dependencies = [
 [[package]]
 name = "jsonrpsee-utils"
 version = "0.3.0"
-source = "git+https://github.com/paritytech/jsonrpsee?branch=master#6db2ee15af05fbe2b4ad5417a730820321aea69f"
+source = "git+https://github.com/paritytech/jsonrpsee?branch=na-require-proc-macro-api-to-return-result#33b4fa28730b72647ba150659d3c0ab1937e524a"
 dependencies = [
  "beef",
  "futures-channel",
  "futures-util",
  "hyper 0.14.11",
- "jsonrpsee-types 0.3.0 (git+https://github.com/paritytech/jsonrpsee?branch=master)",
+ "jsonrpsee-types 0.3.0 (git+https://github.com/paritytech/jsonrpsee?branch=na-require-proc-macro-api-to-return-result)",
  "log",
  "parking_lot 0.11.1",
  "rand 0.8.4",
@@ -2929,11 +2960,11 @@ dependencies = [
 [[package]]
 name = "jsonrpsee-ws-server"
 version = "0.3.0"
-source = "git+https://github.com/paritytech/jsonrpsee?branch=master#6db2ee15af05fbe2b4ad5417a730820321aea69f"
+source = "git+https://github.com/paritytech/jsonrpsee?branch=na-require-proc-macro-api-to-return-result#33b4fa28730b72647ba150659d3c0ab1937e524a"
 dependencies = [
  "futures-channel",
  "futures-util",
- "jsonrpsee-types 0.3.0 (git+https://github.com/paritytech/jsonrpsee?branch=master)",
+ "jsonrpsee-types 0.3.0 (git+https://github.com/paritytech/jsonrpsee?branch=na-require-proc-macro-api-to-return-result)",
  "jsonrpsee-utils",
  "log",
  "rustc-hash",
@@ -6654,7 +6685,7 @@ dependencies = [
  "env_logger 0.8.3",
  "frame-support",
  "hex",
- "jsonrpsee-proc-macros",
+ "jsonrpsee-proc-macros 0.3.0 (git+https://github.com/paritytech/jsonrpsee?branch=master)",
  "jsonrpsee-ws-client",
  "log",
  "pallet-elections-phragmen",

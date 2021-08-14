@@ -86,23 +86,31 @@ impl<B: traits::Block> System<B> {
 		let mut rpc_module = RpcModule::new(self);
 
 		// Get the node's implementation name. Plain old string.
-		rpc_module.register_method("system_name", |_, system| Ok(system.info.impl_name.clone()))?;
+		rpc_module.register_method::<_, _, JsonRpseeCallError>("system_name", |_, system| {
+			Ok(system.info.impl_name.clone())
+		})?;
 
 		// Get the node implementation's version. Should be a semver string.
-		rpc_module
-			.register_method("system_version", |_, system| Ok(system.info.impl_version.clone()))?;
+		rpc_module.register_method::<_, _, JsonRpseeCallError>("system_version", |_, system| {
+			Ok(system.info.impl_version.clone())
+		})?;
 
 		// Get the chain's name. Given as a string identifier.
-		rpc_module
-			.register_method("system_chain", |_, system| Ok(system.info.chain_name.clone()))?;
+		rpc_module.register_method::<_, _, JsonRpseeCallError>("system_chain", |_, system| {
+			Ok(system.info.chain_name.clone())
+		})?;
 
 		// Get the chain's type.
 		rpc_module
-			.register_method("system_ChainType", |_, system| Ok(system.info.chain_type.clone()))?;
+			.register_method::<_, _, JsonRpseeCallError>("system_ChainType", |_, system| {
+				Ok(system.info.chain_type.clone())
+			})?;
 
 		// Get a custom set of properties as a JSON object, defined in the chain spec.
 		rpc_module
-			.register_method("system_properties", |_, system| Ok(system.info.properties.clone()))?;
+			.register_method::<_, _, JsonRpseeCallError>("system_properties", |_, system| {
+				Ok(system.info.properties.clone())
+			})?;
 
 		// Return health status of the node.
 		//
