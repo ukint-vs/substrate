@@ -7336,7 +7336,7 @@ dependencies = [
  "libp2p",
  "log 0.4.14",
  "parity-scale-codec",
- "prost 0.7.0",
+ "prost 0.8.0",
  "prost-build 0.7.0",
  "quickcheck",
  "rand 0.7.3",
@@ -8001,7 +8001,7 @@ dependencies = [
  "parity-scale-codec",
  "parking_lot 0.11.1",
  "pin-project 1.0.5",
- "prost 0.7.0",
+ "prost 0.8.0",
  "prost-build 0.7.0",
  "quickcheck",
  "rand 0.7.3",
@@ -11809,9 +11809,9 @@ dependencies = [
 
 [[package]]
 name = "zeroize"
-version = "1.2.0"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81a974bcdd357f0dca4d41677db03436324d45a4c9ed2d0b873a5a360ce41c36"
+checksum = "377db0846015f7ae377174787dd452e1c5f5a9050bc6f954911d01f116daa0cd"
 dependencies = [
  "zeroize_derive",
 ]
